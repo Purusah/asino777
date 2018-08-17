@@ -3,27 +3,34 @@ from solc import compile_source
 import settings
 # from jsonrpcserver.aio import methods
 
-class Roulette777(object):
+
+class Block(object):
     def __init__(self):
         w3 = Web3(Web3.EthereumTesterProvider())
         self.eth = w3.eth
-        self.roulette = self.contract()
 
-    def contract(self):
+    def deploy_contract(self, name="Roulette777"):
         compiled_sol = compile_source(settings.contract_source_code,
                                       import_remappings=['=/', '-']
                                       )
-        contract_interface = compiled_sol['<stdin>:Roulette777']
+        contract_interface = compiled_sol[f'<stdin>:{name}']
         self.eth.defaultAccount = self.eth.accounts[0]
-        Roulette = self.eth.contract(abi=contract_interface['abi'],
-                                 bytecode=contract_interface['bin']
-                                 )
-        tx_hash = Roulette.constructor().transact()
+        Contract = self.eth.contract(abi=contract_interface['abi'],
+                                     bytecode=contract_interface['bin']
+                                     )
+        tx_hash = Contract.constructor().transact()
         tx_receipt = self.eth.waitForTransactionReceipt(tx_hash)
-        roulette_data = self.eth.contract(address=tx_receipt.contractAddress,
-                                      abi=contract_interface['abi']
-                                      )
-        return roulette_data
+        contract_data = self.eth.contract(address=tx_receipt.contractAddress,
+                                          abi=contract_interface['abi']
+                                          )
+        contract = Contract_obj(self.eth, contract_data)
+        return contract
+
+
+class Contract_obj(object):
+    def __init__(self, block, contract_data):
+        self.eth = block
+        self.roulette = contract_data
 
     def get_owner(self):
         owner = self.roulette.functions.getOwner().call()
